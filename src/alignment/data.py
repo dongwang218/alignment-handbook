@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
+import re, os
 from typing import List, Literal, Optional
 
 from datasets import DatasetDict, concatenate_datasets, load_dataset
@@ -143,20 +143,18 @@ def mix_datasets(dataset_mixer: dict, splits: Optional[List[str]] = None, shuffl
     for ds, frac in dataset_mixer.items():
         fracs.append(frac)
         for split in splits:
+            if ds.startswith('/') and os.path.exists(ds):
+                loaded = load_dataset('arrow', data_files={split: os.path.join(ds, split, '*.arrow')})[split]
+            else:
+                loaded = load_dataset(
+                        ds,
+                        split=split,
+                    )
+
             if "train" in split:
-                raw_train_datasets.append(
-                    load_dataset(
-                        ds,
-                        split=split,
-                    )
-                )
+                raw_train_datasets.append(loaded)
             elif "test" in split:
-                raw_val_datasets.append(
-                    load_dataset(
-                        ds,
-                        split=split,
-                    )
-                )
+                raw_val_datasets.append(loaded)
             else:
                 raise ValueError(f"Split type {split} not recognized as one of test or train.")
 

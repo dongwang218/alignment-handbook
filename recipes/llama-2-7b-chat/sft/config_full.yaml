@@ -1,0 +1,43 @@
+# Model arguments
+model_name_or_path: meta-llama/Llama-2-7b-chat-hf
+model_revision: main
+torch_dtype: bfloat16
+use_flash_attention_2: true
+
+# Data training arguments
+dataset_mixer:
+  /data/users/dongwang/notebooks/dongwang_cc_quality_rating_hf: 1.0
+dataset_splits:
+- train
+- test
+preprocessing_num_workers: 12
+chat_template: "{% for message in messages %}\n{% if message['role'] == 'user' %}\n{{  message['content'] + ' [/INST] ' }}\n{% elif message['role'] == 'system' %}\n{{ '[INST] <<SYS>>\n' + message['content'] + '\n <</SYS>>\n' }}\n{% elif message['role'] == 'assistant' %}\n{{ message['content'] + ' </s>' }}\n{% endif %}\n{% endfor %}"
+
+# SFT trainer config
+bf16: true
+do_eval: true
+evaluation_strategy: epoch
+gradient_accumulation_steps: 2
+gradient_checkpointing: true
+hub_model_id: llama-2-7b-chat-sft
+hub_strategy: every_save
+learning_rate: 2.0e-05
+log_level: info
+logging_steps: 5
+logging_strategy: steps
+lr_scheduler_type: cosine
+max_seq_length: 4096
+max_steps: -1
+num_train_epochs: 1
+output_dir: data/llama-2-7b-chat
+overwrite_output_dir: true
+per_device_eval_batch_size: 4
+per_device_train_batch_size: 8
+push_to_hub: false
+remove_unused_columns: true
+report_to:
+- tensorboard
+save_strategy: "no"
+save_total_limit: null
+seed: 42
+tf32: true

@@ -39,7 +39,7 @@ from alignment import (
     get_quantization_config,
     get_tokenizer,
 )
-from trl import SFTTrainer
+from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 
 
 logger = logging.getLogger(__name__)
@@ -124,6 +124,11 @@ def main():
     ########################
     # Initialize the Trainer
     ########################
+    # ('▁[', 518), ('/', 29914), ('INST', 25580), (']', 29962)
+    response_template_with_context = " [/INST]"  # We added context here: "\n". This is enough for this tokenizer
+    response_template_ids = tokenizer.encode(response_template_with_context, add_special_tokens=False)[1:]  # Now we have it like in the dataset texts: `[2277, 29937, 4007, 22137, 29901]`
+    collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer)
+
     trainer = SFTTrainer(
         model=model_args.model_name_or_path,
         model_init_kwargs=model_kwargs,
@@ -133,8 +138,9 @@ def main():
         dataset_text_field="text",
         max_seq_length=training_args.max_seq_length,
         tokenizer=tokenizer,
-        packing=True,
+        packing=False,
         peft_config=get_peft_config(model_args),
+        data_collator=collator,
     )
 
     ###############
