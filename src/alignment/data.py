@@ -33,10 +33,13 @@ def apply_chat_template(
         return re.sub(f"^{re.escape(pattern)}", "", s)
 
     if task in ["sft", "generation"]:
-        messages = example["messages"]
-        # We add an empty system message if there is none
-        if messages[0]["role"] != "system":
-            messages.insert(0, {"role": "system", "content": ""})
+        if 'messages' in example:
+            messages = example["messages"]
+            # We add an empty system message if there is none
+            if messages[0]["role"] != "system":
+                messages.insert(0, {"role": "system", "content": ""})
+        else:
+            messages = example
         example["text"] = tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True if task == "generation" else False
         )

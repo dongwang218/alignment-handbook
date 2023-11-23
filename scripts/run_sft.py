@@ -21,6 +21,8 @@ import logging
 import random
 import sys
 
+from typing import List, Union, Any, Dict
+
 import datasets
 import torch
 import transformers
@@ -41,7 +43,30 @@ from alignment import (
 )
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 
+# https://github.com/huggingface/trl/issues/976
+class DataCollatorForCompletionOnlyLMEOS(DataCollatorForCompletionOnlyLM):
 
+    def __init__(
+        self,
+        response_template: Union[str, List[int]],
+        instruction_template: Union[str, List[int]] = None,
+        *args,
+        mlm: bool = False,
+        ignore_index: int = -100,
+        **kwargs,
+    ):
+        super().__init__(response_template, instruction_template, *args, mlm=mlm, ignore_index=ignore_index, **kwargs)
+
+    def torch_call(self, examples: List[Union[List[int], Any, Dict[str, Any]]]) -> Dict[str, Any]:
+        batch = super().torch_call(examples)
+        att = batch['attention_mask']
+        labels = batch['labels']
+        # last label is eos
+        mask = (att == 1) & (torch.cat((att, torch.zeros((att.shape[0], 1), dtype=att.dtype, device=att.device)), axis = -1)[:, 1:] == 0)
+        labels[mask] = self.tokenizer.eos_token_id
+
+        return batch
+    
 logger = logging.getLogger(__name__)
 
 
@@ -127,7 +152,7 @@ def main():
     # ('▁[', 518), ('/', 29914), ('INST', 25580), (']', 29962)
     response_template_with_context = " [/INST]"  # We added context here: "\n". This is enough for this tokenizer
     response_template_ids = tokenizer.encode(response_template_with_context, add_special_tokens=False)[1:]  # Now we have it like in the dataset texts: `[2277, 29937, 4007, 22137, 29901]`
-    collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer)
+    collator = DataCollatorForCompletionOnlyLMEOS(response_template_ids, tokenizer=tokenizer)
 
     trainer = SFTTrainer(
         model=model_args.model_name_or_path,

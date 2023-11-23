@@ -2,16 +2,17 @@
 model_name_or_path: meta-llama/Llama-2-7b-chat-hf
 model_revision: main
 torch_dtype: bfloat16
-use_flash_attention_2: true
+use_flash_attention_2: false
 
 # Data training arguments
 dataset_mixer:
-  /data/users/dongwang/notebooks/dongwang_cc_quality_rating_hf: 1.0
+  /data/users/dongwang/notebooks/dongwang_cc_quality_rating_hf: 1.0  # samsum
 dataset_splits:
 - train
 - test
 preprocessing_num_workers: 12
 chat_template: "{% for message in messages %}\n{% if message['role'] == 'user' %}\n{{  message['content'] + ' [/INST] ' }}\n{% elif message['role'] == 'system' %}\n{{ '[INST] <<SYS>>\n' + message['content'] + '\n <</SYS>>\n' }}\n{% elif message['role'] == 'assistant' %}\n{{ message['content'] + ' </s>' }}\n{% endif %}\n{% endfor %}"
+# chat_template: "{{ '[INST] Summarize the following conversation in 30 words:\n\n' + messages['dialogue'] + ' [/INST] ' + messages['summary']+ ' </s>' }}"
 
 # SFT trainer config
 bf16: true
